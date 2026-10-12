@@ -22,20 +22,51 @@ export default function PandalGateNav({ pandals = [], onQueueReportSuccess }) {
   const [reportSubmitting, setReportSubmitting] = useState(false);
   const [reportSubmittedSuccess, setReportSubmittedSuccess] = useState(false);
 
-  // Upvotes local tracking
-  const [upvotedIds, setUpvotedIds] = useState(new Set());
-
-  const filteredPandals = pandals.filter(p => {
-    if (selectedZone !== 'all' && p.zone !== selectedZone) return false;
-    if (!searchTerm) return true;
-    const term = searchTerm.toLowerCase();
-    return (
-      p.name_en.toLowerCase().includes(term) ||
-      p.name_bn.toLowerCase().includes(term) ||
-      p.landmark.toLowerCase().includes(term) ||
-      (p.theme_2026 && p.theme_2026.toLowerCase().includes(term))
-    );
+  // Visited pandals tracking for Puja Wrapped
+  const [visitedIds, setVisitedIds] = useState(() => {
+    try {
+      const saved = localStorage.getItem('sharod_visited_ids');
+      return saved ? new Set(JSON.parse(saved)) : new Set();
+    } catch {
+      return new Set();
+    }
   });
+
+  // Dynamic gate diagrams cache from backend
+  const [gatesCache, setGatesCache] = useState({});
+
+  const toggleVisited = (pandalId) => {
+    const next = new Set(visitedIds);
+    if (next.has(pandalId)) {
+      next.delete(pandalId);
+    } else {
+      next.add(pandalId);
+      confetti({ particleCount: 40, spread: 50, origin: { y: 0.6 } });
+    }
+    setVisitedIds(next);
+    localStorage.setItem('sharod_visited_ids', JSON.stringify([...next]));
+  };
+
+  const handleToggleGates = async (pandal) => {
+    if (activePandalForGates?.id === pandal.id) {
+      setActivePandalForGates(null);
+      return;
+    }
+    setActivePandalForGates(pandal);
+    if (!gatesCache[pandal.id]) {
+      try {
+        const res = await fetch(`/api/pandals/${pandal.id}`);
+        if (res.ok) {
+          const detail = await res.json();
+          if (detail.gates) {
+            setGatesCache(prev => ({ ...prev, [pandal.id]: detail.gates }));
+          }
+        }
+      } catch (err) {
+        console.warn("Could not fetch gate detail", err);
+      }
+    }
+  };
 
   const handleUpvote = async (pandalId) => {
     if (upvotedIds.has(pandalId)) return;
@@ -192,17 +223,32 @@ export default function PandalGateNav({ pandals = [], onQueueReportSuccess }) {
                       <span>{waitMins} {t('waitMins')}</span>
                     </div>
 
-                    <button
-                      onClick={() => handleUpvote(pandal.id)}
-                      className={`px-2.5 py-1 rounded-lg text-xs font-medium backdrop-blur-md border flex items-center space-x-1 transition-all ${
-                        upvotedIds.has(pandal.id)
-                          ? 'bg-sindoor-600 border-sindoor-400 text-white'
-                          : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white'
-                      }`}
-                    >
-                      <ThumbsUp className="w-3 h-3" />
-                      <span>{pandal.upvotes + (upvotedIds.has(pandal.id) ? 1 : 0)}</span>
-                    </button>
+                    <div className="flex items-center space-x-1.5">
+                      <button
+                        onClick={() => toggleVisited(pandal.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-semibold backdrop-blur-md border flex items-center space-x-1 transition-all ${
+                          visitedIds.has(pandal.id)
+                            ? 'bg-emerald-600 border-emerald-400 text-white shadow-md'
+                            : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white'
+                        }`}
+                        title="Mark visited for Puja Wrapped stats"
+                      >
+                        <CheckCircle2 className="w-3 h-3" />
+                        <span>{visitedIds.has(pandal.id) ? 'Visited' : 'Check In'}</span>
+                      </button>
+
+                      <button
+                        onClick={() => handleUpvote(pandal.id)}
+                        className={`px-2.5 py-1 rounded-lg text-xs font-medium backdrop-blur-md border flex items-center space-x-1 transition-all ${
+                          upvotedIds.has(pandal.id)
+                            ? 'bg-sindoor-600 border-sindoor-400 text-white'
+                            : 'bg-slate-900/80 border-slate-700 text-slate-300 hover:text-white'
+                        }`}
+                      >
+                        <ThumbsUp className="w-3 h-3" />
+                        <span>{pandal.upvotes + (upvotedIds.has(pandal.id) ? 1 : 0)}</span>
+                      </button>
+                    </div>
                   </div>
                 </div>
 
@@ -251,10 +297,10 @@ export default function PandalGateNav({ pandals = [], onQueueReportSuccess }) {
               <div className="p-4 pt-0 space-y-2">
                 <div className="grid grid-cols-2 gap-2">
                   <button
-                    onClick={() => setActivePandalForGates(isSelectedForGates ? null : pandal)}
+                    onClick={() => handleToggleGates(pandal)}
                     className={`py-2 px-3 rounded-xl text-xs font-semibold flex items-center justify-center space-x-1.5 transition-all border ${
                       isSelectedForGates
-                        ? 'bg-amber-500 text-slate-950 border-amber-400'
+                        ? 'bg-amber-500 text-slate-950 border-amber-400 font-bold'
                         : 'bg-slate-800/80 text-amber-300 border-amber-500/30 hover:bg-slate-800'
                     }`}
                   >
@@ -304,17 +350,24 @@ export default function PandalGateNav({ pandals = [], onQueueReportSuccess }) {
                       </div>
                     </div>
 
-                    {/* Mermaid Viewer rendering the flowchart */}
-                    <MermaidViewer
-                      chart={
+                    {/* Mermaid Viewer rendering dynamic backend or fallback flowchart */}
+                    {(() => {
+                      const cachedGates = gatesCache[pandal.id] || pandal.gates || [];
+                      const matchedGate = cachedGates.find(g => g.gate_type === activeGateType);
+                      const chartCode = matchedGate?.mermaid_flow || (
                         activeGateType === 'vip'
                           ? `graph LR\n  A[VIP Pass Checkpoint] --> B[Fast-Track Red Carpet]\n  B --> C[Inner Sanctum Deck]\n  C --> D[Priority Exit Gate]`
                           : activeGateType === 'senior_citizen'
                           ? `graph LR\n  A[Accessible Ramp Entry] --> B[Wheelchair Escort Lane]\n  B --> C[Ground-Level Darshan]\n  C --> D[Step-Free Exit]`
                           : `graph LR\n  A[Main Barricade Hold] --> B[Metal Detector Scan]\n  B --> C[Serpentine Zig-Zag]\n  C --> D[Main Mandap Darshan]\n  D --> E[Radial Exit Stream]`
-                      }
-                      title={`${language === 'bn' ? pandal.name_bn : pandal.name_en} • ${activeGateType.toUpperCase()} Gate`}
-                    />
+                      );
+                      return (
+                        <MermaidViewer
+                          chart={chartCode}
+                          title={`${language === 'bn' ? pandal.name_bn : pandal.name_en} • ${(matchedGate?.gate_name || activeGateType).toUpperCase()}`}
+                        />
+                      );
+                    })()}
                   </div>
                 )}
               </div>

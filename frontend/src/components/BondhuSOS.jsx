@@ -21,13 +21,29 @@ export default function BondhuSOS() {
   // SOS Emergency Strobe Mode
   const [strobeActive, setStrobeActive] = useState(false);
 
+  const KOLKATA_HUBS = {
+    "Dum Dum": { lat: 22.6214, lon: 88.3934 },
+    "Shyambazar": { lat: 22.6006, lon: 88.3705 },
+    "Howrah Station": { lat: 22.5830, lon: 88.3426 },
+    "Sealdah": { lat: 22.5670, lon: 88.3712 },
+    "Esplanade (Central)": { lat: 22.5647, lon: 88.3518 },
+    "Park Street": { lat: 22.5532, lon: 88.3533 },
+    "Kalighat": { lat: 22.5190, lon: 88.3470 },
+    "Gariahat": { lat: 22.5186, lon: 88.3678 },
+    "Garia (Kavi Subhash)": { lat: 22.4645, lon: 88.3842 },
+    "Salt Lake Karunamoyee": { lat: 22.5850, lon: 88.4110 },
+    "Behala Chowrasta": { lat: 22.4978, lon: 88.3156 }
+  };
+
+  const [selectedHub, setSelectedHub] = useState('Esplanade (Central)');
+
   const handleAddFriend = () => {
     if (!newFriendName.trim()) return;
-    // Add default central point for demo
+    const coords = KOLKATA_HUBS[selectedHub] || { lat: 22.5647, lon: 88.3518 };
     setFriends([...friends, {
-      name: newFriendName,
-      latitude: 22.5401 + (Math.random() - 0.5) * 0.05,
-      longitude: 88.3518 + (Math.random() - 0.5) * 0.05
+      name: `${newFriendName.trim()} (${selectedHub})`,
+      latitude: coords.lat,
+      longitude: coords.lon
     }]);
     setNewFriendName('');
   };
@@ -177,20 +193,31 @@ export default function BondhuSOS() {
             ))}
           </div>
 
-          {/* Add Friend Input */}
-          <div className="flex items-center space-x-2 pt-1">
-            <input
-              type="text"
-              value={newFriendName}
-              onChange={(e) => setNewFriendName(e.target.value)}
-              placeholder="e.g. Arka (Ballygunge)"
-              className="flex-1 p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-amber-400"
-            />
+          {/* Add Friend Input with Station Hub */}
+          <div className="space-y-2 pt-1">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              <input
+                type="text"
+                value={newFriendName}
+                onChange={(e) => setNewFriendName(e.target.value)}
+                placeholder="Friend's Name (e.g. Arka)"
+                className="p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+              />
+              <select
+                value={selectedHub}
+                onChange={(e) => setSelectedHub(e.target.value)}
+                className="p-2.5 bg-slate-900 border border-slate-700 rounded-xl text-slate-100 text-xs focus:outline-none focus:border-amber-400"
+              >
+                {Object.keys(KOLKATA_HUBS).map(hub => (
+                  <option key={hub} value={hub}>{hub}</option>
+                ))}
+              </select>
+            </div>
             <button
               onClick={handleAddFriend}
-              className="px-3.5 py-2.5 bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold rounded-xl text-xs border border-slate-700"
+              className="w-full py-2 bg-slate-800 hover:bg-slate-700 text-amber-300 font-semibold rounded-xl text-xs border border-slate-700 flex items-center justify-center space-x-1"
             >
-              + Add
+              <span>+ Add Friend to Meeting Group</span>
             </button>
           </div>
 

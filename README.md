@@ -106,10 +106,24 @@ npm run dev
 ```
 Open your browser at `http://localhost:5173`.
 
-### 3. Run with Docker Compose
+### 3. Production Build & Unified Single-Service Deployment
+FastAPI is pre-configured to statically mount and serve the built React Vite PWA:
+```bash
+# 1. Compile frontend production bundle
+cd frontend && npm run build && cd ..
+
+# 2. Run unified production server (serves frontend + REST API + WebSocket on single port)
+uvicorn main:app --app-dir backend --host 0.0.0.0 --port 8000
+```
+
+### 4. Run with Docker Compose
 ```bash
 docker compose up --build
 ```
+
+### 5. 1-Click Cloud Deployment (Render / Railway / Fly.io)
+- **Render**: Connect repository; Render will automatically detect [`render.yaml`](./render.yaml).
+- **Railway / Heroku**: Uses included [`Procfile`](./Procfile) and [`Dockerfile`](./Dockerfile) for zero-config auto-detection.
 
 ---
 

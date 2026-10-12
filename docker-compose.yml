@@ -1,22 +1,13 @@
 version: '3.8'
 
 services:
-  backend:
-    build: ./backend
-    container_name: sharod_utsav_backend
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: sharod_utsav_app
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=sqlite:///./sharod_utsav.db
-    volumes:
-      - ./backend:/app
-    restart: unless-stopped
-
-  frontend:
-    build: ./frontend
-    container_name: sharod_utsav_frontend
-    ports:
-      - "3000:80"
-    depends_on:
-      - backend
+      - PORT=8000
     restart: unless-stopped

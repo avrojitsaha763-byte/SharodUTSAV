@@ -1,4 +1,6 @@
 import React, { useEffect, useState, useRef } from 'react';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
 import { MapPin, Navigation, Eye, Zap, Flame, Shield, Compass, Search } from 'lucide-react';
 import { useLanguage } from '../context/LanguageContext';
 
@@ -23,25 +25,24 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
   });
 
   useEffect(() => {
-    // Dynamically check Leaflet availability
-    if (!window.L || !mapContainerRef.current) return;
+    if (!mapContainerRef.current) return;
 
     if (!mapInstanceRef.current) {
-      const map = window.L.map(mapContainerRef.current, {
+      const map = L.map(mapContainerRef.current, {
         center: [22.5626, 88.3639],
         zoom: 12,
         zoomControl: true,
       });
 
       // CartoDB Dark Matter / OpenStreetMap tiles
-      window.L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
         attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
         subdomains: 'abcd',
         maxZoom: 19
       }).addTo(map);
 
-      markersLayerRef.current = window.L.layerGroup().addTo(map);
-      circlesLayerRef.current = window.L.layerGroup().addTo(map);
+      markersLayerRef.current = L.layerGroup().addTo(map);
+      circlesLayerRef.current = L.layerGroup().addTo(map);
 
       mapInstanceRef.current = map;
     }
@@ -67,7 +68,7 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
 
       // Crowd Heatmap Radius circle
       const radiusMeters = Math.min(800, Math.max(300, p.current_wait_minutes * 12));
-      window.L.circle([p.latitude, p.longitude], {
+      L.circle([p.latitude, p.longitude], {
         color: markerColor,
         fillColor: circleFill,
         fillOpacity: 0.35,
@@ -77,7 +78,7 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
       }).addTo(circlesLayerRef.current);
 
       // Custom Festive Durga / Kalash SVG Pin
-      const customIcon = window.L.divIcon({
+      const customIcon = L.divIcon({
         className: 'custom-pandal-marker',
         html: `
           <div style="
@@ -103,7 +104,7 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
         popupAnchor: [0, -32]
       });
 
-      const marker = window.L.marker([p.latitude, p.longitude], { icon: customIcon });
+      const marker = L.marker([p.latitude, p.longitude], { icon: customIcon });
 
       const popupContent = `
         <div style="font-family: Outfit, sans-serif; min-width: 200px; color: #0f172a; padding: 4px;">
@@ -170,7 +171,7 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
         if (mapInstanceRef.current) {
           mapInstanceRef.current.flyTo([latitude, longitude], 14, { duration: 1.5 });
           // User beacon marker
-          const userIcon = window.L.divIcon({
+          const userIcon = L.divIcon({
             className: 'user-pulse-marker',
             html: `
               <div style="
@@ -185,7 +186,7 @@ export default function LiveHeatmap({ pandals = [], onSelectPandal }) {
             `,
             iconSize: [20, 20]
           });
-          window.L.marker([latitude, longitude], { icon: userIcon })
+          L.marker([latitude, longitude], { icon: userIcon })
             .addTo(mapInstanceRef.current)
             .bindPopup("<b>You are here</b><br>Kolkata Durga Puja GPS Tracked")
             .openPopup();

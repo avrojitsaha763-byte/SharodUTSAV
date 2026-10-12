@@ -8,20 +8,43 @@ export default function PujaWrappedModal({ isOpen, onClose }) {
 
   if (!isOpen) return null;
 
+  // Read actual user interactions from localStorage
+  let visitedCount = 0;
+  try {
+    const saved = localStorage.getItem('sharod_visited_ids');
+    if (saved) {
+      const arr = JSON.parse(saved);
+      visitedCount = arr.length;
+    }
+  } catch {}
+
+  // If user hasn't checked in yet, provide a baseline or realistic progress
+  const displayCount = visitedCount > 0 ? visitedCount : 7;
+  const kmWalked = (displayCount * 1.5).toFixed(1);
+  const biryaniStops = Math.max(1, Math.round(displayCount / 2.5));
+  
+  const archetype = displayCount >= 12
+    ? 'The Legendary Pandal Hunter 🏆'
+    : displayCount >= 6
+    ? 'The Midnight Sabeki Explorer 🌙'
+    : 'The Relaxed Adda Connoisseur ☕';
+
   const handleShare = () => {
     confetti({
       particleCount: 80,
       spread: 70,
       origin: { y: 0.6 }
     });
+    const shareText = `🪷 My SharodUTSAV 2026 Puja Wrapped:\n📍 ${displayCount} Pandals Visited\n🚶 ${kmWalked} km walked through Kolkata\n🍲 ${biryaniStops} Late-Night Biryani Pitstops\n✨ Archetype: ${archetype}\nCheck your stats on SharodUTSAV!`;
     if (navigator.share) {
       navigator.share({
         title: 'My SharodUTSAV 2026 Puja Wrapped',
-        text: 'I completed 19 pandals and walked 26.5 km in Kolkata Durga Puja! Check out your stats on SharodUTSAV.',
+        text: shareText,
         url: window.location.href,
       }).catch(() => {});
     } else {
-      alert("Wrapped status copied to clipboard! Share on WhatsApp or Instagram.");
+      navigator.clipboard.writeText(shareText);
+      alert("Wrapped status copied to clipboard! Share on WhatsApp or Instagram Stories.");
     }
   };
 
@@ -44,7 +67,7 @@ export default function PujaWrappedModal({ isOpen, onClose }) {
             MY PUJO WRAPPED
           </h2>
           <p className="text-xs text-slate-300">
-            Archetype: <strong className="text-amber-400">The Midnight Sabeki Explorer</strong>
+            Archetype: <strong className="text-amber-400">{archetype}</strong>
           </p>
         </div>
 
@@ -53,25 +76,27 @@ export default function PujaWrappedModal({ isOpen, onClose }) {
           <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
             <Sparkles className="w-5 h-5 text-amber-400 mx-auto" />
             <span className="text-[11px] text-slate-400">{t('pandalsVisited')}</span>
-            <p className="text-2xl font-black text-amber-300">19</p>
+            <p className="text-2xl font-black text-amber-300">{displayCount}</p>
           </div>
 
           <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
             <Footprints className="w-5 h-5 text-emerald-400 mx-auto" />
             <span className="text-[11px] text-slate-400">{t('kmsWalked')}</span>
-            <p className="text-2xl font-black text-emerald-300">26.5 km</p>
+            <p className="text-2xl font-black text-emerald-300">{kmWalked} km</p>
           </div>
 
           <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
             <Utensils className="w-5 h-5 text-rose-400 mx-auto" />
             <span className="text-[11px] text-slate-400">{t('biryaniCount')}</span>
-            <p className="text-2xl font-black text-rose-300">6 Pitstops</p>
+            <p className="text-2xl font-black text-rose-300">{biryaniStops} Pitstops</p>
           </div>
 
           <div className="bg-slate-900/90 p-4 rounded-2xl border border-slate-800 text-center space-y-1">
             <Award className="w-5 h-5 text-blue-400 mx-auto" />
-            <span className="text-[11px] text-slate-400">Favorite Pandal</span>
-            <p className="text-xs font-bold text-blue-300 mt-2 line-clamp-1">Bagbazar Sarbojanin</p>
+            <span className="text-[11px] text-slate-400">Pujo Status</span>
+            <p className="text-xs font-bold text-blue-300 mt-2 line-clamp-1">
+              {visitedCount > 0 ? `${visitedCount} Checked In` : 'Verified Hopper'}
+            </p>
           </div>
         </div>
 

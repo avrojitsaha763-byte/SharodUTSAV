@@ -76,17 +76,44 @@ export default function VintageRadio() {
       noiseGain.connect(ctx.destination);
       whiteNoise.start();
 
+      // Harmonic Tanpura / Drone Oscillator for 100% offline acoustic playback
+      const osc1 = ctx.createOscillator();
+      const osc2 = ctx.createOscillator();
+      const synthGain = ctx.createGain();
+
+      osc1.type = 'sawtooth';
+      osc1.frequency.value = 138.59; // C#3 (Sa)
+      osc2.type = 'triangle';
+      osc2.frequency.value = 207.65; // G#3 (Pa)
+
+      const synthFilter = ctx.createBiquadFilter();
+      synthFilter.type = 'lowpass';
+      synthFilter.frequency.value = 350;
+
+      synthGain.gain.value = 0.0;
+      osc1.connect(synthFilter);
+      osc2.connect(synthFilter);
+      synthFilter.connect(synthGain);
+      synthGain.connect(ctx.destination);
+
+      osc1.start();
+      osc2.start();
+
       noiseNodeRef.current = whiteNoise;
       noiseGainRef.current = noiseGain;
+      synthGainRef.current = synthGain;
     } catch (e) {
       console.warn("Web Audio API not supported", e);
     }
   };
 
+  const synthGainRef = useRef(null);
+
   // Adjust audio and static based on tuning closeness
   useEffect(() => {
     if (!isOn) {
       if (noiseGainRef.current) noiseGainRef.current.gain.value = 0;
+      if (synthGainRef.current) synthGainRef.current.gain.value = 0;
       if (audioElementRef.current) audioElementRef.current.pause();
       setCurrentStation(null);
       return;
@@ -117,7 +144,7 @@ export default function VintageRadio() {
       
       // Reduce static, increase music
       if (noiseGainRef.current) {
-        noiseGainRef.current.gain.value = (1 - signalClarity) * 0.15 * volume;
+        noiseGainRef.current.gain.value = (1 - signalClarity) * 0.12 * volume;
       }
 
       if (audioElementRef.current) {
@@ -126,13 +153,25 @@ export default function VintageRadio() {
           audioElementRef.current.load();
         }
         audioElementRef.current.volume = signalClarity * volume;
-        audioElementRef.current.play().catch(() => {});
+        audioElementRef.current.play()
+          .then(() => {
+            if (synthGainRef.current) synthGainRef.current.gain.value = 0;
+          })
+          .catch(() => {
+            // Offline fallback: play authentic synthesized Indian drone
+            if (synthGainRef.current) {
+              synthGainRef.current.gain.value = signalClarity * volume * 0.08;
+            }
+          });
       }
     } else {
       // Static hiss
       setCurrentStation(null);
       if (audioElementRef.current) {
         audioElementRef.current.pause();
+      }
+      if (synthGainRef.current) {
+        synthGainRef.current.gain.value = 0;
       }
       if (noiseGainRef.current) {
         noiseGainRef.current.gain.value = 0.2 * volume;
