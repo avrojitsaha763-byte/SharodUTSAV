@@ -1,0 +1,50 @@
+# Dependencies
+node_modules/
+frontend/node_modules/
+.pnp
+.pnp.js
+
+# Testing and Coverage
+coverage/
+
+# Production Build
+dist/
+frontend/dist/
+build/
+
+# Python
+__pycache__/
+backend/__pycache__/
+backend/routers/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+.venv/
+
+# Local Database
+*.sqlite3
+*.db
+backend/*.db
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# Log files
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
